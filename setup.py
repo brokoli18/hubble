@@ -49,6 +49,7 @@ setup(
         'salt-ssh >= 2019.2.0',
         'croniter',
         'pyinotify',
+        'pycryptodome',
         'vulners == 1.3.0',
         'azure',
         'ntplib',

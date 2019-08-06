@@ -119,7 +119,13 @@ relevant-files.txt
 
 # PyCharm project
 .idea/
+<<<<<<< 6690eeaba0d6e278b5c25a37c3d9e0f87bb8d4c3
 
 # sometimes when I stop docker with a sigquit, hubble drops core (??)
 core
 core.*
+
+# contrib/gen-pretend-certs.sh data dumptory
+.pretend-certs
+MANIFEST
+SIGNATURE
