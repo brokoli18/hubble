@@ -23,8 +23,6 @@ To sign a repo simply (without having to write shell scripts, etc), issue
 something like the following in a repo root.
 
     hubble signing.msign ./sign.this.file ./and-this-dir/
-    
-
 """
 
 import os
@@ -33,6 +31,7 @@ import logging
 import re
 import json
 import inspect
+import cStringIO
 
 from collections import OrderedDict, namedtuple
 
@@ -51,7 +50,6 @@ MANIFEST_RE = re.compile(r'^\s*(?P<digest>[0-9a-fA-F]+)\s+(?P<fname>.+)$')
 log = logging.getLogger(__name__)
 
 class STATUS:
-    OK = 'ok'
     FAIL = 'fail'
     VERIFIED = 'verified'
     UNKNOWN = 'unknown'
@@ -90,6 +88,30 @@ class Options(object):
             raise
 Options = Options()
 
+def split_certs(fh):
+    ret = None
+    for line in fh.readlines():
+        if ret is None:
+            if line.startswith('----'):
+                ret = line
+        else:
+            ret += line
+            if line.startswith('----'):
+                yield ossl.load_certificate(ossl.FILETYPE_PEM, ret)
+                ret = None
+
+def read_certs(*fnames):
+    for fname in fnames:
+        if fname.strip().startswith('--') and '\x0a' in fname:
+            fh = cStringIO.StringIO(fname)
+            return tuple(x for x in split_certs(fh))
+        elif os.path.isfile(fname):
+            try:
+                with open(fname, 'r') as fh:
+                    return tuple(x for x in split_certs(fh))
+            except Exception as e:
+                log.error('error while reading "%s": %s', fname, e)
+    return tuple()
 
 class X509:
     """
@@ -104,38 +126,94 @@ class X509:
     SigData = namedtuple('SigData', ['nonzero_bits','dat', 'algo'])
 
     def __init__(self, public_crt, ca_crt):
-        self.public_crt = public_crt
-        self.ca_crt = ca_crt
-        with open(ca_crt, 'r') as fh:
-            self.ca_raw = fh.read()
-        with open(public_crt, 'r') as fh:
-            self.crt_raw = fh.read()
+        if isinstance(ca_crt, (list, tuple)):
+            untrusted_crt = ca_crt[1:]
+            ca_crt = ca_crt[0]
+        else:
+            untrusted_crt = list()
 
-        self.ca = ossl.load_certificate(ossl.FILETYPE_PEM, self.ca_raw)
-        ossl_crt = ossl.load_certificate(ossl.FILETYPE_PEM, self.crt_raw)
-        self.pdat = self.PEMData(*PEM.decode(self.crt_raw))
-        self.cdat = self.CrtData(*asn1.DerSequence().decode(self.pdat.cert))
-        _sig = asn1.DerObject().decode(self.cdat.sig).payload
-        self.sig = self.SigData(_sig[0], _sig[1:], ossl_crt.get_signature_algorithm().decode())
-        self.crt = RSA.importKey(self.pdat.cert)
-        self.verifier = PKCS1_v1_5.new(self.crt)
+        try:
+            import hubblestack.pre_packaged_certificates as HPPC
+            # iff we have hardcoded certs then we're meant to ignore any other
+            # configured value
+            if hasattr(HPPC, 'public_crt'):
+                public_crt = HPPC.public_crt
+            if hasattr(HPPC, 'ca_crt'):
+                ca_crt = HPPC.ca_crt
+            if hasattr(HPPC, 'untrusted_crt'):
+                untrusted_crt = HPPC.ca_crt
+        except ImportError:
+            pass
+
+        # if there's more than one public_crt, we choose the first one found
+        # (otherwise, we end up with something like this:
+        #   def check_file(file):
+        #     for pc in public_crt:
+        #       if check_certificate_validity(pc):
+        #         if check_file_validity(pc, file):
+        #           return 'ok'
+        #     return 'not ok'
+        # ... do we need this? hope not.)
+        self.public_crt = read_certs(public_crt)[0]
+        self.ca_crt = read_certs(ca_crt)
+        self.untrusted_crt = read_certs(*untrusted_crt)
+
+        self.public_raw = ossl.dump_certificate(ossl.FILETYPE_PEM, self.public_crt)
+        self.verifier = PKCS1_v1_5.new(RSA.importKey(self.public_raw))
+
+        self.store = ossl.X509Store()
+        self.stctx = ossl.X509StoreContext(self.store, self.public_crt)
+
+        for c in self.ca_crt:
+            log.debug('adding %s as a trusted certificate approver', stringify_ossl_cert(c))
+            self.store.add_cert(c)
+
+        for c in self.untrusted_crt:
+            log.debug('checking to see if %s is trustworthy', stringify_ossl_cert(c))
+            try:
+                ossl.X509StoreContext(self.store, c).verify_certificate()
+                self.store.add_cert(c)
+                log.debug('  added to verify store')
+            except ossl.X509StoreContextError as e:
+                log.debug('  not trustworthy: %s', e)
 
     def verify_cert(self):
         """
-        Verify that a given public.crt is indeed signed by the given ca.crt.
+        Verify that a given public.crt is indeed signed by the given ca.crt; or
+        signed by the untrusted chains and that those chains are signed by the
+        root.
         """
-        if self.sig.nonzero_bits != 0 and self.sig.nonzero_bits != '\x00': # py3 vs py2
-            log.error('The CA cert (%s) may not approve of this certificate (%s): unusual padding bits',
-                self.ca_crt, self.public_crt)
-            return STATUS.UNKNOWN
-        try:
-            ossl.verify(self.ca, str(self.sig.dat), str(self.cdat.cert), str(self.sig.algo))
-            return STATUS.VERIFIED
-        except ossl.Error:
-            # the error ossl raises is not useful (apparently)
-            log.error('The CA cert (%s) does not seem to approve of this certificate (%s)')
+
+        if self.public_crt and self.ca_crt:
+            try:
+                # NOTE: the docs seem to say this returns None when it works...
+                # This implies that it probably returns something else when it
+                # doesn't work but in fact, it simply raises non-None results.
+                self.stctx.verify_certificate()
+                return STATUS.VERIFIED
+            except ossl.X509StoreContextError as e:
+                code, depth, message = e.args[0]
+                log.debug('verification of %s failed: %s', stringify_ossl_cert(self.public_crt), message)
+                # from openssl/x509_vfy.h
+                # define X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT         2
+                # define X509_V_ERR_UNABLE_TO_GET_CRL                 3
+                # define X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY 20
+                # define X509_V_ERR_CERT_UNTRUSTED                    27
+                # define X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER          33
+                if code in (2,3,20,27,33):
+                    # we just don't have the required info, it's not failing to
+                    # verify not exactly, but it's definitely not verified
+                    # either
+                    return STATUS.UNKNOWN
+                # define X509_V_ERR_CERT_HAS_EXPIRED                  10
+                # define X509_V_ERR_CRL_HAS_EXPIRED                   12
+                # XX # if code in (10,12):
+                # XX #     return # .... is this even the right idea? should we do this through conext flags?
+                return STATUS.FAIL
         return STATUS.UNKNOWN
 
+def stringify_ossl_cert(c):
+    return '/'.join([ '='.join(x) for x in c.get_subject().get_components() ])
 
 def jsonify(obj, indent=2):
     return json.dumps(obj, indent=indent)
@@ -304,12 +382,13 @@ def verify_files(targets, mfname='MANIFEST', sfname='SIGNATURE', public_crt='pub
     # compare actual digests of files (if they exist) to the manifested digests
     for vfname in digests:
         digest = digests[vfname]
+        htname = os.path.join(trunc, vfname) if trunc else vfname
         if digest == STATUS.UNKNOWN:
             # digests[vfname] is either UNKNOWN (from the targets population)
             # or it's a digest from the MANIFEST. If UNKNOWN, we have nothing to compare
             # so we return UNKNOWN
             ret[vfname] = STATUS.UNKNOWN
-        elif digest == hash_target( os.path.join(trunc, vfname) ):
+        elif digest == hash_target(htname):
             # Cool, the digest matches, but rather than mark STATUS.VERIFIED,
             # we mark it with the same status as the MANIFEST it self --
             # presumably it's signed (STATUS.VERIFIED); but perhaps it's only
@@ -337,7 +416,7 @@ def find_wrapf(not_found={'path': '', 'rel': ''}, real_path='path'):
     """
     def wrapper(find_file_f):
         def _p(fnd):
-            return fnd.get(REAL_PATH, fnd.get('path', ''))
+            return fnd.get(real_path, fnd.get('path', ''))
 
         def inner(path, saltenv, *a, **kw):
             f_mani = find_file_f('MANIFEST', saltenv, *a, **kw )
@@ -357,6 +436,7 @@ def find_wrapf(not_found={'path': '', 'rel': ''}, real_path='path'):
                 return f_path
             if vrg == STATUS.UNKNOWN and not Options.require_verify:
                 return f_path
+            log.debug('claiming not found')
             return dict(**not_found)
         return inner
     return wrapper
