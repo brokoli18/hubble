@@ -307,11 +307,11 @@ def verify_signature(fname, sfname, public_crt='public.crt', ca_crt='ca-root.crt
         with open(sfname, 'r') as fh:
             signature,_,_ = PEM.decode(fh.read()) # also returns header and decrypted-status
     except IOError:
-        log.error('failed to find %s for %s', sfname, fname)
+        log.info('verify_signature() failed to find sfname=%s for fname=%s', sfname, fname)
         return STATUS.UNKNOWN
     if x509.verifier.verify(hash_target(fname, obj_mode=True), signature):
         return ca_status
-    log.error('%s failed signature check (%s)', fname, sfname)
+    log.error('fname=%s failed signature check (sfname=%s)', fname, sfname)
     return STATUS.FAIL
 
 def iterate_manifest(mfname):
