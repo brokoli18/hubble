@@ -7,10 +7,22 @@ The settings for the signing and verification (and their defaults) are as
 follows.
 
     repo_signing:
+        # defaults
         require_verify: false
-        ca_crt: '/etc/hubble/sign/ca-root.crt'
-        public_crt: '/etc/hubble/sign/public.crt'
-        private_key: '/etc/hubble/sign/private.key'
+        ca_crt: /etc/hubble/sign/ca-root.crt
+        public_crt: /etc/hubble/sign/public.crt
+        private_key: /etc/hubble/sign/private.key
+
+        # alternatively, ca_crt can be a list
+        ca_crt:
+          # there should be exactly one trusted cert
+          # (only the first cert found in this file will count)
+          - /etc/hubble/sign/ca-root.crt
+          # all additional entries in the list (and all certs in each file)
+          # will be included as untrusted certs; wqich (if a path can be found
+          # to the root) may become trusted before verification. Normally these
+          # would be intermediate or chain certs.
+          - /etc/hubble/sign/untrusted.crt
 
 For verification purposes, only the ca_crt and the public_crt are required. The
 private key is only used for actually signing repos.
