@@ -313,6 +313,7 @@ def verify_signature(fname, sfname, public_crt='public.crt', ca_crt='ca-root.crt
         return STATUS.UNKNOWN if the certificate signature can't be verified with the ca cert
         return STATUS.VERIFIED if both the signature and the CA sig match
     """
+    log.debug("verify_signature(fname=%s, sfname=%s, public_crt=%s, ca_crt=%s", fname, sfname, public_crt, ca_crt)
     x509 = X509(public_crt, ca_crt)
     ca_status = x509.verify_cert()
     try:
@@ -353,6 +354,7 @@ def verify_files(targets, mfname='MANIFEST', sfname='SIGNATURE', public_crt='pub
 
         return a mapping from the input target list to the status values (a dict of filename: status)
     """
+    log.debug("verify_files(%s, mfname=%s, sfname=%s, public_crt=%s, ca_crt=%s", targets, mfname, sfname, public_crt, ca_crt)
     ret = OrderedDict()
     ret[mfname] = verify_signature(mfname, sfname=sfname, public_crt=public_crt, ca_crt=ca_crt)
     # ret[mfname] is the strongest claim we can make about the files we're
