@@ -31,10 +31,13 @@ F = sig.STATUS.FAIL
 
 def test_read_certs(no_ppc):
     fname = 'tests/unittests/resources/pretend-certs/bundle.pem'
+    fnam2 = 'tests/unittests/resources/pretend-certs/ca-root.crt'
+
     with open(fname, 'r') as fh:
         dat = fh.read()
-    file_read = sig.read_certs(fname)
-    str__read = sig.read_certs(dat)
+
+    file_read = tuple(sig.read_certs(fname))
+    str__read = tuple(sig.read_certs(dat))
 
     def dc(cobj):
         return sig.ossl.dump_certificate(sig.ossl.FILETYPE_PEM, cobj)
@@ -42,6 +45,9 @@ def test_read_certs(no_ppc):
     assert len(file_read) == 2 == len(str__read)
     for i in range(len(file_read)):
         assert dc(file_read[i]) == dc(str__read[i])
+
+    three_certs = tuple(sig.read_certs(fnam2, fname))
+    assert len(three_certs) == 3
 
 def test_x509_basics(no_ppc):
     """
