@@ -115,15 +115,15 @@ def split_certs(fh):
 def read_certs(*fnames):
     for fname in fnames:
         if fname.strip().startswith('--') and '\x0a' in fname:
-            fh = cStringIO.StringIO(fname)
-            return tuple(x for x in split_certs(fh))
+            for x in split_certs(cStringIO.StringIO(fname)):
+                yield x
         elif os.path.isfile(fname):
             try:
                 with open(fname, 'r') as fh:
-                    return tuple(x for x in split_certs(fh))
+                    for x in split_certs(fh):
+                        yield x
             except Exception as e:
                 log.error('error while reading "%s": %s', fname, e)
-    return tuple()
 
 class X509:
     """
@@ -166,9 +166,9 @@ class X509:
         #           return 'ok'
         #     return 'not ok'
         # ... do we need this? hope not.)
-        self.public_crt = read_certs(public_crt)[0]
-        self.ca_crt = read_certs(ca_crt)
-        self.untrusted_crt = read_certs(*untrusted_crt)
+        self.public_crt = next(read_certs(public_crt))
+        self.ca_crt = tuple(read_certs(ca_crt))
+        self.untrusted_crt = tuple(read_certs(*untrusted_crt))
 
         self.public_raw = ossl.dump_certificate(ossl.FILETYPE_PEM, self.public_crt)
         self.verifier = PKCS1_v1_5.new(RSA.importKey(self.public_raw))
