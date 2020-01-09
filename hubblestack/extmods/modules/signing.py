@@ -11,7 +11,7 @@ __virtualname__ = 'signing'
 def __virtual__():
     return True
 
-def msign(*targets, mfname='MANIFEST', sfname='SIGNATURE', private_key=Options.private_key):
+def msign(*targets, mfname='MANIFEST', sfname='SIGNATURE', private_key=HuS.Options.private_key):
     """
     Sign a files and directories. Will overwrite whatever's already in MANIFEST.
     Arguments: files and/or directories
@@ -25,7 +25,7 @@ def msign(*targets, mfname='MANIFEST', sfname='SIGNATURE', private_key=Options.p
     HuS.sign_target(mfname, sfname, private_key=private_key)
 
 # def verify_files(*targets, mfname='MANIFEST', sfname='SIGNATURE',
-#     public_crt=Options.public_crt, ca_crt=Options.ca_crt):
+#     public_crt=HuS.Options.public_crt, ca_crt=HuS.Options.ca_crt):
 #     """
 #     Verify files
 #     Arguments: files and/or directories
