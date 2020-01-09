@@ -10,6 +10,9 @@ def no_ppc():
     if os.path.isfile('hubblestack/pre_packaged_certificates.py'):
         os.unlink('hubblestack/pre_packaged_certificates.py')
 
+    if os.path.isfile('hubblestack/pre_packaged_certificates.pyc'):
+        os.unlink('hubblestack/pre_packaged_certificates.pyc')
+
 @fixture(scope='session')
 def targets():
     _t = [ 'tests/unittests/resources/test-{}.file'.format(i) for i in 'abcd' ]
