@@ -325,3 +325,13 @@ def test_bundled_certs(no_ppc):
     assert dc_pub_x1 == dc_pub_x2
     assert dc_ca_x2  in ppc.ca_crt
     assert dc_ca_x1  != dc_ca_x2               # QED
+
+# def test_like_a_daemon_with_bundle(__salt__):
+#     sig.Options.ca_crt = (pc('ca-root.crt'), pc('bundle.pem'))
+#     sig.Options.public_crt = pc('public-1.crt')
+#     sig.Options.private_key = pc('private-11.crt')
+
+#     res = __salt__['signing.msign']('tests/unittests/test_*.py')
+#     assert len(res) > 5
+#     for key in res:
+#         assert res[key] == sig.STATUS.VERIFIED
