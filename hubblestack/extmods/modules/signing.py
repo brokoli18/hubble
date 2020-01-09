@@ -11,7 +11,7 @@ __virtualname__ = 'signing'
 def __virtual__():
     return True
 
-def msign(*targets, mfname='MANIFEST', sfname='SIGNATURE', private_key=HuS.Options.private_key):
+def msign(*targets, **kw):
     """
     Sign a files and directories. Will overwrite whatever's already in MANIFEST.
     Arguments: files and/or directories
@@ -21,6 +21,10 @@ def msign(*targets, mfname='MANIFEST', sfname='SIGNATURE', private_key=HuS.Optio
         private_key :- the private key to use for the signature (default
             /etc/hubble/sign/private.key)
     """
+    mfname = kw.get('mfname', 'MANIFEST')
+    sfname = kw.get('sfname', 'SIGNATURE')
+    private_key = kw.get('private_key', HuS.Options.private_key)
+
     HuS.manifest(targets, mfname=mfname)
     HuS.sign_target(mfname, sfname, private_key=private_key)
 
