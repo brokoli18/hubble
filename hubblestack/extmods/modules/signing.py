@@ -45,8 +45,8 @@ def verify(*targets, **kw):
                   found.
     """
 
-    mfname = os.path.abspath(kw.get('mfname', './MANIFEST'))
-    sfname = os.path.abspath(kw.get('sfname', './SIGNATURE'))
+    mfname = kw.get('mfname', 'MANIFEST')
+    sfname = kw.get('sfname', 'SIGNATURE')
     public_crt = kw.get('public_crt', HuS.Options.public_crt)
     ca_crt = kw.get('ca_crt', HuS.Options.ca_crt)
     pwd = os.path.abspath(os.path.curdir)

@@ -318,7 +318,7 @@ def sign_target(fname, ofname, private_key='private.key', **kw):
     signer = PKCS1_v1_5.new(private_key)
     sig = signer.sign(hash_target(fname, obj_mode=True))
     with open(ofname, 'w') as fh:
-        log.debug('writing signature to %s', ofname)
+        log.debug('writing signature of %s to %s', os.path.abspath(fname), os.path.abspath(ofname))
         fh.write(PEM.encode(sig, 'Detached Signature of {}'.format(fname)))
         fh.write('\n')
 
