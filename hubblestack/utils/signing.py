@@ -179,12 +179,21 @@ class X509:
         self.store = ossl.X509Store()
         self.stctx = ossl.X509StoreContext(self.store, self.public_crt)
 
+        already = set()
         for c in self.ca_crt:
-            log.debug('adding %s as a trusted certificate approver', stringify_ossl_cert(c))
+            d = c.digest('sha1')
+            if d in already:
+                continue
+            log.debug('adding %s %s as a trusted certificate approver', d, stringify_ossl_cert(c))
             self.store.add_cert(c)
+            already.add(d)
 
         for c in self.untrusted_crt:
-            log.debug('checking to see if %s is trustworthy', stringify_ossl_cert(c))
+            d = c.digest('sha1')
+            if d in already:
+                continue
+            already.add(d)
+            log.debug('checking to see if %s %s is trustworthy', d, stringify_ossl_cert(c))
             try:
                 ossl.X509StoreContext(self.store, c).verify_certificate()
                 self.store.add_cert(c)
