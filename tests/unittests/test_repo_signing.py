@@ -7,11 +7,13 @@ import hubblestack.utils.signing as sig
 
 @fixture(scope='function')
 def no_ppc():
-    if os.path.isfile('hubblestack/pre_packaged_certificates.py'):
-        os.unlink('hubblestack/pre_packaged_certificates.py')
-
-    if os.path.isfile('hubblestack/pre_packaged_certificates.pyc'):
-        os.unlink('hubblestack/pre_packaged_certificates.pyc')
+    def nuke():
+        for i in ('py', 'pyc'):
+            if os.path.isfile('hubblestack/pre_packaged_certificates.{}'.format(i)):
+                os.unlink('hubblestack/pre_packaged_certificates.{}'.format(i))
+    nuke()
+    yield True
+    nuke()
 
 @fixture(scope='session')
 def targets():
