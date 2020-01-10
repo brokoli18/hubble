@@ -208,16 +208,21 @@ class X509:
         root.
         """
 
+        public_crt_string = self.public_crt.digest('sha1') + ' ' + stringify_ossl_cert(self.public_crt)
+        log.debug('attempting to verify %s', public_crt_string)
+
         if self.public_crt and self.ca_crt:
             try:
                 # NOTE: the docs seem to say this returns None when it works...
                 # This implies that it probably returns something else when it
                 # doesn't work but in fact, it simply raises non-None results.
                 self.stctx.verify_certificate()
+                log.debug('verification of %s succeeded', public_crt_string)
                 return STATUS.VERIFIED
             except ossl.X509StoreContextError as e:
                 code, depth, message = e.args[0]
-                log.debug('verification of %s failed: %s', stringify_ossl_cert(self.public_crt), message)
+                log.debug('verification of %s failed: code=%s depth=%s, message=%s',
+                    public_crt_string, code, depth, message)
                 # from openssl/x509_vfy.h
                 # define X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT         2
                 # define X509_V_ERR_UNABLE_TO_GET_CRL                 3
