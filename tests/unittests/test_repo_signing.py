@@ -331,6 +331,37 @@ def test_bundled_certs(no_ppc):
     assert dc_ca_x2  in ppc.ca_crt
     assert dc_ca_x1  != dc_ca_x2               # QED
 
+def test_msign_and_verify_signature(__salt__, targets, no_ppc):
+    sig.Options.ca_crt = (pc('ca-root.crt'), pc('bundle.pem'))
+
+    sig.Options.public_crt  = pc('public-1.crt')
+    sig.Options.private_key = pc('private-1.key')
+
+    __salt__['signing.msign'](*targets)
+    res = sig.verify_signature('MANIFEST', 'SIGNATURE',
+        public_crt=sig.Options.public_crt, ca_crt=sig.Options.ca_crt)
+
+    assert res == sig.STATUS.VERIFIED
+
+    sig.Options.public_crt  = pc('public-1.crt')
+    sig.Options.private_key = pc('private-2.key')
+
+    __salt__['signing.msign'](*targets)
+    res = sig.verify_signature('MANIFEST', 'SIGNATURE',
+        public_crt=sig.Options.public_crt, ca_crt=sig.Options.ca_crt)
+
+    assert res == sig.STATUS.FAIL
+
+    sig.Options.public_crt  = pc('public-3.crt')
+    sig.Options.private_key = pc('private-3.key')
+
+    __salt__['signing.msign'](*targets)
+    res = sig.verify_signature('MANIFEST', 'SIGNATURE',
+        public_crt=sig.Options.public_crt, ca_crt=sig.Options.ca_crt)
+
+    assert res == sig.STATUS.FAIL
+
+
 # XXX: in testing we found nothing actually worked even though all the above worked.
 # def test_like_a_daemon_with_bundle(__salt__):
 #     sig.Options.ca_crt = (pc('ca-root.crt'), pc('bundle.pem'))
