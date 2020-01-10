@@ -169,7 +169,7 @@ class X509:
         #           return 'ok'
         #     return 'not ok'
         # ... do we need this? hope not.)
-        self.public_crt = next(read_certs(public_crt))
+        self.public_crt = tuple(read_certs(public_crt))[0]
         self.ca_crt = tuple(read_certs(ca_crt))
         self.untrusted_crt = tuple(read_certs(*untrusted_crt))
 
