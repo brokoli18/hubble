@@ -201,7 +201,7 @@ class X509:
             except ossl.X509StoreContextError as e:
                 log.debug('  not trustworthy: %s', e)
 
-    def verify_cert(self):
+    def authenticate_cert(self):
         """
         Verify that a given public.crt is indeed signed by the given ca.crt; or
         signed by the untrusted chains and that those chains are signed by the
@@ -209,7 +209,7 @@ class X509:
         """
 
         public_crt_string = self.public_crt.digest('sha1') + ' ' + stringify_ossl_cert(self.public_crt)
-        log.debug('attempting to verify %s', public_crt_string)
+        log.debug('attempting to authenticate %s', public_crt_string)
 
         if self.public_crt and self.ca_crt:
             try:
@@ -217,11 +217,11 @@ class X509:
                 # This implies that it probably returns something else when it
                 # doesn't work but in fact, it simply raises non-None results.
                 self.stctx.verify_certificate()
-                log.debug('verification of %s succeeded', public_crt_string)
+                log.debug('authentication of %s succeeded', public_crt_string)
                 return STATUS.VERIFIED
             except ossl.X509StoreContextError as e:
                 code, depth, message = e.args[0]
-                log.debug('verification of %s failed: code=%s depth=%s, message=%s',
+                log.debug('authentication of %s failed: code=%s depth=%s, message=%s',
                     public_crt_string, code, depth, message)
                 # from openssl/x509_vfy.h
                 # define X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT         2
@@ -332,7 +332,7 @@ def verify_signature(fname, sfname, public_crt='public.crt', ca_crt='ca-root.crt
     """
     log.debug("verify_signature(fname=%s, sfname=%s, public_crt=%s, ca_crt=%s", fname, sfname, public_crt, ca_crt)
     x509 = X509(public_crt, ca_crt)
-    ca_status = x509.verify_cert()
+    ca_status = x509.authenticate_cert()
     try:
         with open(sfname, 'r') as fh:
             signature,_,_ = PEM.decode(fh.read()) # also returns header and decrypted-status

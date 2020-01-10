@@ -65,36 +65,36 @@ def test_x509_basics(no_ppc):
     """
 
     # we can verify that both intermediate certs relate to this ca-root
-    assert sig.X509(pc('intermediate-1.crt'), pc('ca-root.crt')).verify_cert() == V
-    assert sig.X509(pc('intermediate-2.crt'), pc('ca-root.crt')).verify_cert() == V
+    assert sig.X509(pc('intermediate-1.crt'), pc('ca-root.crt')).authenticate_cert() == V
+    assert sig.X509(pc('intermediate-2.crt'), pc('ca-root.crt')).authenticate_cert() == V
 
     # the intermediate certs can't be verified without the root cert
     # (they can't be verified, but that's all we can really say)
-    assert sig.X509(pc('public-1.crt'), pc('intermediate-1.crt')).verify_cert() == U
-    assert sig.X509(pc('public-1.crt'), pc('intermediate-2.crt')).verify_cert() == U
+    assert sig.X509(pc('public-1.crt'), pc('intermediate-1.crt')).authenticate_cert() == U
+    assert sig.X509(pc('public-1.crt'), pc('intermediate-2.crt')).authenticate_cert() == U
 
-    assert sig.X509(pc('public-2.crt'), pc('intermediate-1.crt')).verify_cert() == U
-    assert sig.X509(pc('public-2.crt'), pc('intermediate-2.crt')).verify_cert() == U
+    assert sig.X509(pc('public-2.crt'), pc('intermediate-1.crt')).authenticate_cert() == U
+    assert sig.X509(pc('public-2.crt'), pc('intermediate-2.crt')).authenticate_cert() == U
 
     # with the root cert, the two intermediate certs can verify their child certs only
     # (we can't verify public-1 with intermediate-2, but we can tell it's from
     # the right modulo group, so we can't say the cert is bad either)
     ri1 = (pc('ca-root.crt'), pc('intermediate-1.crt'))
     ri2 = (pc('ca-root.crt'), pc('intermediate-2.crt'))
-    assert sig.X509(pc('public-1.crt'), ri1).verify_cert() == V
-    assert sig.X509(pc('public-1.crt'), ri2).verify_cert() == U
+    assert sig.X509(pc('public-1.crt'), ri1).authenticate_cert() == V
+    assert sig.X509(pc('public-1.crt'), ri2).authenticate_cert() == U
 
-    assert sig.X509(pc('public-2.crt'), ri1).verify_cert() == U
-    assert sig.X509(pc('public-2.crt'), ri2).verify_cert() == V
+    assert sig.X509(pc('public-2.crt'), ri1).authenticate_cert() == U
+    assert sig.X509(pc('public-2.crt'), ri2).authenticate_cert() == V
 
     # with the root cert, the bundle (both intermediates) can verify either child key
     bndl = (pc('ca-root.crt'), pc('bundle.pem'))
-    assert sig.X509(pc('public-1.crt'), bndl).verify_cert() == V
-    assert sig.X509(pc('public-2.crt'), bndl).verify_cert() == V
+    assert sig.X509(pc('public-1.crt'), bndl).authenticate_cert() == V
+    assert sig.X509(pc('public-2.crt'), bndl).authenticate_cert() == V
 
     # public-3 and private-3 are from a totally different ca-root
     # this should give us a real actual FAIL condition
-    assert sig.X509(pc('public-3.crt'), bndl).verify_cert() == F
+    assert sig.X509(pc('public-3.crt'), bndl).authenticate_cert() == F
 
 def test_msign_and_verify_files(__salt__, targets, no_ppc):
     inverse = {2:1, 1:2}
