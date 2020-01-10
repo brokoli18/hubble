@@ -329,6 +329,7 @@ def test_bundled_certs(no_ppc):
     assert dc_ca_x2  in ppc.ca_crt
     assert dc_ca_x1  != dc_ca_x2               # QED
 
+# XXX: in testing we found nothing actually worked even though all the above worked.
 # def test_like_a_daemon_with_bundle(__salt__):
 #     sig.Options.ca_crt = (pc('ca-root.crt'), pc('bundle.pem'))
 #     sig.Options.public_crt = pc('public-1.crt')
