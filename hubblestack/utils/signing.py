@@ -149,10 +149,13 @@ class X509:
             # iff we have hardcoded certs then we're meant to ignore any other
             # configured value
             if hasattr(HPPC, 'public_crt'):
+                log.debug('using pre-packaged-public_crt')
                 public_crt = HPPC.public_crt
             if hasattr(HPPC, 'ca_crt'):
+                log.debug('using pre-packaged-ca_crt')
                 ca_crt = HPPC.ca_crt
             if hasattr(HPPC, 'untrusted_crt'):
+                log.debug('using pre-packaged-untrusted_crt')
                 untrusted_crt = HPPC.ca_crt
         except ImportError:
             pass
