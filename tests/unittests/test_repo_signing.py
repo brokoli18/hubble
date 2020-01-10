@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os
+import os, sys
 from pytest import fixture
 import hubblestack.utils.signing as sig
 
@@ -12,6 +12,8 @@ def no_ppc():
             if os.path.isfile('hubblestack/pre_packaged_certificates.{}'.format(i)):
                 os.unlink('hubblestack/pre_packaged_certificates.{}'.format(i))
     nuke()
+    if 'hubblestack.pre_packaged_certificates' in sys.modules:
+        del sys.modules['hubblestack.pre_packaged_certificates']
     yield True
     nuke()
 
