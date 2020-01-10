@@ -364,13 +364,13 @@ def test_msign_and_verify_signature(__salt__, targets, no_ppc):
     assert res == sig.STATUS.FAIL
 
 
-# XXX: in testing we found nothing actually worked even though all the above worked.
-# def test_like_a_daemon_with_bundle(__salt__):
-#     sig.Options.ca_crt = (pc('ca-root.crt'), pc('bundle.pem'))
-#     sig.Options.public_crt = pc('public-1.crt')
-#     sig.Options.private_key = pc('private-11.crt')
+def test_like_a_daemon_with_bundle(__salt__, no_ppc):
+    sig.Options.ca_crt = (pc('ca-root.crt'), pc('bundle.pem'))
+    sig.Options.public_crt = pc('public-1.crt')
+    sig.Options.private_key = pc('private-1.key')
 
-#     res = __salt__['signing.msign']('tests/unittests/test_*.py')
-#     assert len(res) > 5
-#     for key in res:
-#         assert res[key] == sig.STATUS.VERIFIED
+    __salt__['signing.msign']('tests/unittests/conftest.py')
+    res = __salt__['signing.verify']('tests/unittests/conftest.py')
+    assert len(res) == 2
+    for item in res:
+        assert res[item] == sig.STATUS.VERIFIED
