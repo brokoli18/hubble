@@ -395,6 +395,7 @@ def verify_files(targets, mfname='MANIFEST', sfname='SIGNATURE', public_crt='pub
         targets = list(iterate_manifest(mfname))
     for otarget in targets:
         target = normalize_path(otarget, trunc=trunc)
+        log.debug('found manifest for %s (%s)', otarget, target)
         if otarget != target:
             xlate[target] = otarget
         if target in digests or target in (mfname, sfname):
