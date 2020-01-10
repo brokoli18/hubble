@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import os
 import logging
 import hubblestack.utils.signing as HuS
 
@@ -28,20 +29,30 @@ def msign(*targets, **kw):
     HuS.manifest(targets, mfname=mfname)
     HuS.sign_target(mfname, sfname, private_key=private_key)
 
-# def verify_files(*targets, mfname='MANIFEST', sfname='SIGNATURE',
-#     public_crt=HuS.Options.public_crt, ca_crt=HuS.Options.ca_crt):
-#     """
-#     Verify files
-#     Arguments: files and/or directories
-#     KW Arguments:
-#         mfname :- the MANIFEST filename (default ./MANIFEST)
-#         sfname :- the SIGNATURE filename (default ./SIGNATURE)
+def verify(*targets, **kw):
+    """
+    Verify files
+    Arguments: files and/or directories
+    KW Arguments:
+        mfname :- the MANIFEST filename (default ./MANIFEST)
+        sfname :- the SIGNATURE filename (default ./SIGNATURE)
 
-#         public_crt :- the signing key (default: /etc/hubble/sign/public.crt)
-#         ca_crt :- the trust chain for the public_crt (default: /etc/hubble/sign/ca-root.crt)
-#                   can optionally be a list of cert files; in which case, the
-#                   first file is trusted, and additional files are assumed to be
-#                   intermediates and are only trusted if a trust path can be
-#                   found.
-#     """
-#     HuS.verify_files(targets, mfname=mfname, sfname=sfname, public_crt=public_crt, ca_crt=ca_crt)
+        public_crt :- the signing key (default: /etc/hubble/sign/public.crt)
+        ca_crt :- the trust chain for the public_crt (default: /etc/hubble/sign/ca-root.crt)
+                  can optionally be a list of cert files; in which case, the
+                  first file is trusted, and additional files are assumed to be
+                  intermediates and are only trusted if a trust path can be
+                  found.
+    """
+
+    mfname = os.path.abspath(kw.get('mfname', './MANIFEST'))
+    sfname = os.path.abspath(kw.get('sfname', './SIGNATURE'))
+    public_crt = kw.get('public_crt', HuS.Options.public_crt)
+    ca_crt = kw.get('ca_crt', HuS.Options.ca_crt)
+    pwd = os.path.abspath(os.path.curdir)
+
+    log.debug('signing.verify(targets=%s, mfname=%s, sfname=%s, public_crt=%s, ca_crt=%s, pwd=%s)',
+        targets, mfname, sfname, public_crt, ca_crt, pwd)
+
+    return dict(HuS.verify_files(targets, mfname=mfname, sfname=sfname,
+        public_crt=public_crt, ca_crt=ca_crt))
